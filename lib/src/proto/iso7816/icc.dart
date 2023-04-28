@@ -1,4 +1,5 @@
 // Created by Crt Vavros, copyright © 2022 ZeroPass. All rights reserved.
+import 'dart:ffi';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:dmrtd/extensions.dart';
@@ -6,6 +7,7 @@ import 'package:dmrtd/src/com/com_provider.dart';
 import 'package:dmrtd/src/lds/tlv.dart';
 import 'package:dmrtd/src/utils.dart';
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 
 import 'command_apdu.dart';
 import 'iso7816.dart';
@@ -100,6 +102,64 @@ class ICC {
       throw ICCError("Get challenge failed", rapdu.status, rapdu.data);
     }
     return rapdu.data!;
+  }
+
+// func sendMSESetATMutualAuth( oid: String, keyType: UInt8 ) async throws -> ResponseAPDU {
+
+//     let oidBytes = oidToBytes(oid: oid, replaceTag: true)
+//     let keyTypeBytes = wrapDO( b: 0x83, arr:[keyType])
+
+//     let data = oidBytes + keyTypeBytes
+
+//     let cmd = NFCISO7816APDU(instructionClass: 00, instructionCode: 0x22, p1Parameter: 0xC1, p2Parameter: 0xA4, data: Data(data), expectedResponseLength: -1)
+
+//     return try await send( cmd: cmd )
+// }
+
+  Future<void> sendMSESetATMutualAuth(
+      {required String oid, required int keyType}) async {
+    // var oidBytes = oidToBytes(oid: oid, replaceTag: true);
+    // var keyTypeBytes = _wrap(cmd)
+    final rapdu = await _transceive(CommandAPDU(
+        cla: 0x00,
+        ins: 0x22,
+        p1: 0xc1,
+        p2: 0xa4,
+        data: Uint8List.fromList([
+          0x80,
+          0x0A,
+          0x04,
+          0x00,
+          0x7F,
+          0x00,
+          0x07,
+          0x02,
+          0x02,
+          0x04,
+          0x02,
+          0x02,
+          0x83,
+          0x01,
+          0x01
+        ])));
+    if (rapdu.status != StatusWord.success) {
+      throw ICCError(
+          "sendMSESetATMutualAuth failed!", rapdu.status, rapdu.data);
+    } else {
+      _log.info('sendMSESetATMutualAuth succeed!');
+    }
+  }
+
+  Future<ResponseAPDU> sendGeneralAuthenticate(
+      {required Uint8List data, required bool isLast}) async {
+    int instructionClass = isLast ? 0x00 : 0x10;
+    int INS_BSI_GENERAL_AUTHENTICATE = 0x86;
+    return await _transceive(CommandAPDU(
+        cla: instructionClass,
+        ins: INS_BSI_GENERAL_AUTHENTICATE,
+        p1: 0x00,
+        p2: 0x00,
+        data: Uint8List.fromList([0x7c, 0x00])));
   }
 
   /// Sends READ BINARY command to ICC.

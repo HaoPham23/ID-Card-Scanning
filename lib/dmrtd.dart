@@ -35,3 +35,4 @@ export 'src/lds/tlv.dart';
 export 'src/passport.dart';
 
 export 'src/proto/dba_keys.dart';
+export 'src/proto/pace_keys.dart';

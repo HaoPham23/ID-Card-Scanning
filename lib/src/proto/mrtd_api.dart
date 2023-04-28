@@ -1,7 +1,10 @@
 // Created by Crt Vavros, copyright © 2022 ZeroPass. All rights reserved.
 import 'dart:typed_data';
 
+import 'package:dmrtd/dmrtd.dart';
+
 import 'bac.dart';
+import 'pace.dart';
 import 'dba_keys.dart';
 import 'iso7816/iso7816.dart';
 import 'iso7816/icc.dart';
@@ -68,6 +71,16 @@ class MrtdApi {
     };
   }
 
+  Future<void> initSessionViaPACE(final PACEKeys keys, final Map securityInfos) async {
+    _log.debug("Initiating SM session using PACE protocol");
+    await PACE.initSession(keys: keys, securityInfos: securityInfos, icc: icc);
+    _reinitSession = () async {
+      _log.debug("Re-initiating SM session using PACE protocol");
+      icc.sm = null;
+      await PACE.initSession(keys: keys, securityInfos: securityInfos, icc: icc);
+    };
+  }
+
   /// Selects eMRTD application (DF1) applet.
   /// Can throw [ICCError] if command is sent to invalid MRTD document.
   /// Can throw [ComProviderError] in case connection with MRTD is lost.
@@ -125,12 +138,24 @@ class MrtdApi {
     //     });
     //   });
     // });
-    await icc.selectFile(
-        cla: ISO7816_CLA.NO_SM,
-        p1: 0,
-        p2: 0x0c,
-        data: Uint8List.fromList([0x3F, 0x00]));
-    _log.debug("selectFile done!");
+    for (int i = 0; i < 256; i++) {
+      try {
+        await icc.selectFile(
+            cla: ISO7816_CLA.NO_SM,
+            p1: 0x00,
+            p2: i,
+            data: Uint8List.fromList([0x3F, 0x00]));
+        return;
+      } on ICCError catch (e) {
+        _log.debug("$i selectFile done!");
+        _log.debug(e);
+      }
+    }
+    // await icc.selectFile(
+    //     cla: ISO7816_CLA.NO_SM,
+    //     p1: 0x00,
+    //     p2: 0x00,
+    //     data: Uint8List.fromList([0x3F, 0x00]));
   }
 
   /// Returns raw EF file bytes of selected DF identified by [fid] from MRTD.

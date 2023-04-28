@@ -42,10 +42,17 @@ class Passport {
   /// Can throw [ComProviderError] on connection failure.
   /// Throws [PassportError] when provided [keys] are invalid or
   /// if BAC session is not supported.
-  Future<void> startSession(final DBAKeys keys) async {
+  Future<void> startSessionBAC(final DBAKeys keys) async {
     _log.debug("Starting session");
     await _selectDF1();
     await _exec(() => _api.initSessionViaBAC(keys));
+    _log.debug("Session established");
+  }
+
+  Future<void> startSessionPACE(final PACEKeys keys, final Map securityInfos) async {
+    _log.debug("Starting session");
+    await _selectDF1();
+    await _exec(() => _api.initSessionViaPACE(keys, securityInfos));
     _log.debug("Session established");
   }
 
@@ -75,7 +82,7 @@ class Passport {
     // return EfCardAccess.fromBytes(
     //   await _exec(() => _api.readFileBySFI(EfCardAccess.SFI))
     // );
-    _log.debug("_selectMF done! Haahahhahaha");
+    // _log.debug("_selectMF done! Haahahhahaha");
     final data = await _api.readFileBySFI(EfCardAccess.SFI);
     return EfCardAccess.fromBytes(data);
   }
@@ -341,7 +348,7 @@ class Passport {
   Future<void> _selectMF() async {
     if (_dfSelectd != _DF.MF) {
       _log.debug("Selecting MF");
-      await _exec(() => _api.selectMasterFile());
+      // await _exec(() => _api.selectMasterFile());
       _log.debug("selectMasterFile done, Hohohohohoho");
       _dfSelectd = _DF.MF;
     }
