@@ -159,7 +159,7 @@ class ICC {
         ins: INS_BSI_GENERAL_AUTHENTICATE,
         p1: 0x00,
         p2: 0x00,
-        data: Uint8List.fromList([0x7c, 0x00])));
+        data: data));
   }
 
   /// Sends READ BINARY command to ICC.
