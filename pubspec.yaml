@@ -12,6 +12,7 @@ dependencies:
   collection: ^1.16.0
   convert: ^3.0.0
   crypto: ^3.0.1
+  encrypt: ^5.0.1
   expandable: ^5.0.1
   fixnum: ^1.0.0
   flutter_nfc_kit: '^3.1.0'

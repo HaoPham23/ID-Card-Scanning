@@ -7,7 +7,7 @@ import 'package:dmrtd/dmrtd.dart';
 import 'package:dmrtd/extensions.dart';
 import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
-
+import 'package:encrypt/encrypt.dart';
 import '../crypto/des.dart';
 import '../crypto/iso9797.dart';
 import '../crypto/kdf.dart';
@@ -61,22 +61,29 @@ class PACE {
 // let (encKey, macKey) = try await self.doStep4KeyAgreement( pcdKeyPair: ephemeralKeyPair, passportPublicKey: passportPublicKey)
 // try self.paceCompleted( ksEnc: encKey, ksMac: macKey )
 // Log.debug("PACE SUCCESSFUL" )
-    final decryptedNonce = await doStep1(icc: icc);
-    throw "PACE Failed!";
+    final decryptedNonce = await doStep1(icc: icc, paceKey: paceKey);
+    _log.debug("Decrypted Nonce - ${decryptedNonce.hex()}");
+    // final ephemeralParams = await doStep2(icc: icc);
+    // throw Exception("PACE Failed!");
+    throw Exception("PACE Failed");
   }
 
-  static Future<int> doStep1({required ICC icc}) async {
+  static Future<Uint8List> doStep1(
+      {required ICC icc, required Uint8List paceKey}) async {
     _log.debug("Doing PACE step 1");
     final response = await icc.sendGeneralAuthenticate(
         data: Uint8List.fromList([]), isLast: false);
     final data = response.data;
-    final encryptedNonce = data!.sublist(4); // Nhap, sua sau
-    _log.debug("Encrypted nonce - $encryptedNonce");
+    _log.debug("Encrypted nonce - ${data!.sublist(4).hex()}");
 
-    var decryptedNonce = 0;
-    // let iv = [UInt8](repeating:0, count: 16)
-    // decryptedNonce = AESDecrypt(key: self.paceKey, message: encryptedNonce, iv: iv)
-
+    final encryptedNonce = Encrypted(data!.sublist(4)); // Nhap, sua sau
+    final key = Key(paceKey);
+    final iv = IV(Uint8List.fromList(List.filled(16, 0)));
+    final encrypter = Encrypter(AES(key, mode: AESMode.cbc, padding: null));
+    final decryptedNonce = Uint8List.fromList(encrypter.decryptBytes(
+      encryptedNonce,
+      iv: iv,
+    ));
     return decryptedNonce;
   }
 }
