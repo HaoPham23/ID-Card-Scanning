@@ -106,7 +106,7 @@ class CommandAPDU {
 
   Uint8List _getLe() {
     if(ne == 0) {
-      return Uint8List(0);
+      return Uint8List.fromList([0x00]);
     }
 
     final bool extended = ne > 256 || (_data?.length ?? 0) > 255;

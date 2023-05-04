@@ -117,7 +117,7 @@ class ICC {
 // }
 
   Future<void> sendMSESetATMutualAuth(
-      {required String oid, required int keyType}) async {
+      {required Uint8List oid, required int keyType}) async {
     // var oidBytes = oidToBytes(oid: oid, replaceTag: true);
     // var keyTypeBytes = _wrap(cmd)
     final rapdu = await _transceive(CommandAPDU(
@@ -125,23 +125,7 @@ class ICC {
         ins: 0x22,
         p1: 0xc1,
         p2: 0xa4,
-        data: Uint8List.fromList([
-          0x80,
-          0x0A,
-          0x04,
-          0x00,
-          0x7F,
-          0x00,
-          0x07,
-          0x02,
-          0x02,
-          0x04,
-          0x02,
-          0x02,
-          0x83,
-          0x01,
-          0x01
-        ])));
+        data: Uint8List.fromList([0x80, 0x0A] + oid.sublist(1) + [0x83, 0x01, 0x01])));
     if (rapdu.status != StatusWord.success) {
       throw ICCError(
           "sendMSESetATMutualAuth failed!", rapdu.status, rapdu.data);

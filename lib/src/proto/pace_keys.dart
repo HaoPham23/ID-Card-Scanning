@@ -35,7 +35,11 @@ class PACEKeys {
   /// Returns Kseed as specified in Section 9.7.3
   /// to the Part 11 of doc ICAO 9303 p11
   Uint8List get keySeed {
-    final hash = sha1.convert("$_mrtdNum$_dob$_doe".codeUnits);
+    final paddedMrtdNum = _mrtdNum.padRight(9, '<');
+    final cdn = MRZ.calculateCheckDigit(paddedMrtdNum);
+    final cdb = MRZ.calculateCheckDigit(_dob);
+    final cde = MRZ.calculateCheckDigit(_doe);
+    final hash = sha1.convert("$paddedMrtdNum$cdn$_dob$cdb$_doe$cde".codeUnits);
     final kSeed = hash.bytes as Uint8List?;
     return kSeed!;
   }

@@ -19,6 +19,8 @@ import 'iso7816/icc.dart';
 import 'dba_keys.dart';
 import 'mrtd_sm.dart';
 import 'ssc.dart';
+import "package:pointycastle/export.dart" as pc;
+import 'pace_smcipher.dart';
 
 class PACEError implements Exception {
   final String message;
@@ -90,10 +92,19 @@ class PACE {
 
     final terminalKeyPairsAndICCPubKey =
         await doStep3KeyExchange(icc: icc, ephemeralParams: ephemeralParams);
-
-
+    final ephemeralKeyPair = terminalKeyPairsAndICCPubKey["ephemeralKeyPair"];
+    final passportPublicKey = terminalKeyPairsAndICCPubKey['passportPublicKey'];
+    final encKey_macKey = await doStep4KeyAgreement(
+        icc: icc,
+        ephemeralKeyPair: ephemeralKeyPair,
+        passportPublicKey: passportPublicKey,
+        oid: paceOID);
+    final encKey = encKey_macKey["encKey"];
+    final macKey = encKey_macKey["macKey"];
+    paceCompleted(icc: icc, encKey: encKey, macKey: macKey);
+    _log.debug("PACE SUCCESSFUL");
     // throw Exception("PACE Failed!");
-    throw "PACE Failed";
+    // throw "PACE Failed";
   }
 
   static Future<Uint8List> doStep1(
@@ -155,7 +166,6 @@ class PACE {
     _log.debug("Doing PACE Step3 - Key Exchange");
     var terminalKeyPairsAndICCPubKey = {};
     final terminalPrivateKey = ephemeralParams.generatePrivateKey();
-    terminalKeyPairsAndICCPubKey['ephemeralKeyPair'] = terminalPrivateKey;
     _log.debug("Generated Ephemeral key pair");
 
     _log.debug("ephemeral private key - ${terminalPrivateKey.D}");
@@ -165,8 +175,8 @@ class PACE {
     _log.debug("  y = ${terminalPublicKey.Y.toRadixString(16)}");
     // Send to ICC
     _log.debug("Sending ephemeral public key to passport..");
-    final step3Data = [0x7c, 0x43, 0x83, 0x41] +
-        hex.decode(terminalPublicKey.toHex());
+    final step3Data =
+        [0x7c, 0x43, 0x83, 0x41] + hex.decode(terminalPublicKey.toHex());
     final response = await icc.sendGeneralAuthenticate(
         data: Uint8List.fromList(step3Data), isLast: false);
     // Receive ICC Pubkey
@@ -177,8 +187,69 @@ class PACE {
     _log.debug("   ICC ephemeral public key:");
     _log.debug("      x = ${iccPublicKey.X.toRadixString(16)}");
     _log.debug("      y = ${iccPublicKey.Y.toRadixString(16)}");
+
+    terminalKeyPairsAndICCPubKey['ephemeralKeyPair'] = terminalPrivateKey;
     terminalKeyPairsAndICCPubKey['passportPublicKey'] = iccPublicKey;
     return terminalKeyPairsAndICCPubKey;
+  }
+
+  static Future<Map> doStep4KeyAgreement(
+      {required ICC icc,
+      required PrivateKey ephemeralKeyPair,
+      required PublicKey passportPublicKey,
+      required Uint8List oid}) async {
+    _log.debug("Doing PACE Step4 Key Agreement...");
+    _log.debug("Computing shared secret...");
+    final keySeed = Uint8List.fromList(
+        hex.decode(computeSecretHex(ephemeralKeyPair, passportPublicKey)));
+    _log.debug("Shared secret - ${keySeed.hex()}");
+    _log.debug("Deriving ksEnc and ksMac keys from shared secret");
+    final encKey = DeriveKey.aes128(keySeed);
+    final macKey = DeriveKey.cmac128(keySeed);
+    _log.debug("KSenc = ${hex.encode(encKey)}");
+    _log.debug("KSmac = ${hex.encode(macKey)}");
+    var encKey_macKey = {};
+    encKey_macKey['encKey'] = encKey;
+    encKey_macKey['macKey'] = macKey;
+
+    // Step 4 - generate authentication token
+    _log.debug("Generating authentication token");
+    final pcdAuthToken =
+        generateAuthenticationToken(passportPublicKey, macKey, oid);
+    _log.debug("  authentication token - ${hex.encode(pcdAuthToken)}");
+    _log.debug("Sending auth token to passport");
+    final step4Data = [0x7c, 0x0a, 0x85, 0x08] + pcdAuthToken;
+    final response = await icc.sendGeneralAuthenticate(
+        data: Uint8List.fromList(step4Data), isLast: true);
+    final data = response.data!.sublist(4);
+    final expectedPICCToken =
+        generateAuthenticationToken(ephemeralKeyPair.publicKey, macKey, oid);
+    _log.debug(
+        "Expecting authentication token from passport - ${expectedPICCToken.hex()}");
+    _log.debug("Received authentication token from passport -  ${data.hex()}");
+    if (expectedPICCToken.hex() == data.hex()) {
+      _log.debug("Auth token from passport matches expected token!");
+    } else {
+      _log.debug("Wrong Token!!!!");
+      throw Exception("Wrong TOKEN");
+    }
+    return encKey_macKey;
+  }
+
+  static Uint8List generateAuthenticationToken(
+      PublicKey pubkey, Uint8List macKey, Uint8List oid) {
+    var authData = Uint8List.fromList([0x7f, 0x49, 0x4f] +
+        [0x06, 0x0a] +
+        oid.sublist(1) +
+        [0x86, 0x41] +
+        hex.decode(pubkey.toHex()));
+    // hex.decode(pubkey_test));
+    _log.debug(pubkey.toHex().length);
+    _log.debug("authData = ${authData.hex()}");
+    final cmac = pc.CMac(pc.AESEngine(), 64);
+    cmac.init(pc.KeyParameter(macKey));
+    final authToken = cmac.process(authData);
+    return authToken;
   }
 
   static EllipticCurve doECDHMappingAgreement(
@@ -190,7 +261,7 @@ class PACE {
     final H = ec.scalarMul(piccMappingEncodedPublicKey, mappingKey.bytes);
     final G_hat = ec.add(ec.scalarBaseMul(nonce), H);
     _log.debug(
-        "New Generator G^ = (0x${G_hat.X.toRadixString(16)}, 0x${G_hat.Y.toRadixString(16)})");
+        "New Generator G^ = H+s*G = (0x${G_hat.X.toRadixString(16)}, 0x${G_hat.Y.toRadixString(16)})");
     final EllipticCurve ephemeralParams = EllipticCurve(
       'brainpoolP256r1',
       256, // bitSize
@@ -211,5 +282,15 @@ class PACE {
       01, // h
     );
     return ephemeralParams;
+  }
+
+  static void paceCompleted(
+      {required ICC icc,
+      required Uint8List encKey,
+      required Uint8List macKey}) {
+    _log.debug("Restarting secure messaging using AES encryption");
+    final ssc = SSC(Uint8List.fromList([0x00]), 128);
+    icc.sm = MrtdSM(PACE_SMCipher(encKey, macKey), ssc);
+    return;
   }
 }
