@@ -349,7 +349,7 @@ class Passport {
     if (_dfSelectd != _DF.MF) {
       _log.debug("Selecting MF");
       // await _exec(() => _api.selectMasterFile());
-      _log.debug("selectMasterFile done, Hohohohohoho");
+      _log.debug("selectMasterFile done!");
       _dfSelectd = _DF.MF;
     }
   }

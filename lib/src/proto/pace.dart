@@ -17,7 +17,7 @@ import '../crypto/crypto_utils.dart';
 import '../types/pair.dart';
 import 'iso7816/icc.dart';
 import 'dba_keys.dart';
-import 'mrtd_sm.dart';
+import 'mrtd_sm_pace.dart';
 import 'ssc.dart';
 import "package:pointycastle/export.dart" as pc;
 import 'pace_smcipher.dart';
@@ -289,8 +289,8 @@ class PACE {
       required Uint8List encKey,
       required Uint8List macKey}) {
     _log.debug("Restarting secure messaging using AES encryption");
-    final ssc = SSC(Uint8List.fromList([0x00]), 128);
-    icc.sm = MrtdSM(PACE_SMCipher(encKey, macKey), ssc);
+    final ssc = SSC(Uint8List.fromList([0x00]), 64);
+    icc.sm = MrtdSMPACE(PACE_SMCipher(encKey, macKey), ssc, encKey, macKey);
     return;
   }
 }

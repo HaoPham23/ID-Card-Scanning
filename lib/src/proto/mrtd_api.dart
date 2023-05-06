@@ -71,13 +71,15 @@ class MrtdApi {
     };
   }
 
-  Future<void> initSessionViaPACE(final PACEKeys keys, final Map securityInfos) async {
+  Future<void> initSessionViaPACE(
+      final PACEKeys keys, final Map securityInfos) async {
     _log.debug("Initiating SM session using PACE protocol");
     await PACE.initSession(keys: keys, securityInfos: securityInfos, icc: icc);
     _reinitSession = () async {
       _log.debug("Re-initiating SM session using PACE protocol");
       icc.sm = null;
-      await PACE.initSession(keys: keys, securityInfos: securityInfos, icc: icc);
+      await PACE.initSession(
+          keys: keys, securityInfos: securityInfos, icc: icc);
     };
   }
 
