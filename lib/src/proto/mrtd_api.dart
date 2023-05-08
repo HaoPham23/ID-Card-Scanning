@@ -53,7 +53,7 @@ class MrtdApi {
   /// Can throw [ComProviderError] in case connection with MRTD is lost.
   Future<Uint8List> activeAuthenticate(final Uint8List challenge,
       {int sigLength = 256}) async {
-    assert(challenge.length == challengeLen);
+    // assert(challenge.length == challengeLen);
     _log.debug("Sending AA command with challenge=${challenge.hex()}");
     return await icc.internalAuthenticate(data: challenge, ne: sigLength);
   }

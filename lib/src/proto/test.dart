@@ -291,63 +291,23 @@ void main() {
     01, // h
   );
 
-  // final mappingKey = PrivateKey.fromHex(
-  //     ec, '7F4EF07B9EA82FD78AD689B38D0BC78CF21F249D953BC46F4C6E19259C010F99');
-  // final piccMappingEncodedPrivateKey = PrivateKey.fromHex(
-  //     ec, '498FF49756F2DC1587840041839A85982BE7761D14715FB091EFA7BCE9058560');
-  // final piccMappingEncodedPublicKey = piccMappingEncodedPrivateKey.publicKey;
-  // final H = ec.scalarMul(piccMappingEncodedPublicKey, mappingKey.bytes);
-  // final nonce = hex.decode('3F00C4D39D153F2B2A214A078D899B22');
-  // final G_hat = ec.add(ec.scalarBaseMul(nonce), H);
-  // final EllipticCurve ephemeralParams = EllipticCurve(
-  //   'brainpoolP256r1',
-  //   256, // bitSize
-  //   BigInt.parse(
-  //       'a9fb57dba1eea9bc3e660a909d838d726e3bf623d52620282013481d1f6e5377',
-  //       radix: 16), // p
-  //   BigInt.parse(
-  //       '7d5a0975fc2c3057eef67530417affe7fb8055c126dc5c6ce94a4b44f330b5d9',
-  //       radix: 16), //a
-  //   BigInt.parse(
-  //       '26dc5c6ce94a4b44f330b5d9bbd77cbf958416295cf7e1ce6bccdc18ff8c07b6',
-  //       radix: 16), //b
-  //   BigInt.zero, //S
-  //   G_hat, // G
-  //   BigInt.parse(
-  //       'a9fb57dba1eea9bc3e660a909d838d718c397aa3b561a6f7901e0e82974856a7',
-  //       radix: 16), //N
-  //   01, // h
-  // );
-
-  // final new_terminalPrivKey = PrivateKey.fromHex(ephemeralParams,
-  //     'A73FB703AC1436A18E0CFA5ABB3F7BEC7A070E7A6788486BEE230C4A22762595');
-  // final new_piccPrivKey = PrivateKey.fromHex(ephemeralParams,
-  //     '107CF58696EF6155053340FD633392BA81909DF7B9706F226F32086C7AFF974A');
-
-  // final new_terminalPubKey = new_terminalPrivKey.publicKey;
-  // final new_piccPubKey = new_piccPrivKey.publicKey;
-  // final keySeed = Uint8List.fromList(
-  //     hex.decode(computeSecretHex(new_terminalPrivKey, new_piccPubKey)));
-  // final KSenc = DeriveKey.aes128(keySeed);
-  // final KSmac = DeriveKey.cmac128(keySeed);
-  // print(hex.encode(KSenc));
-  // print(hex.encode(KSmac));
-  // final tagOld =
-  //     '7F494F060A04007F000702020402028641049E880F842905B8B3181F7AF7CAA9F0EFB743847F44A306D2D28C1D9EC65DF6DB7764B22277A2EDDC3C265A9F018F9CB852E111B768B326904B59A0193776F094';
-  // var tagList = Uint8List.fromList(
-  //     hex.decode("7F494F060A04007F000702020402028641") +
-  //         hex.decode(new_piccPubKey.toHex()));
-  // // final tagList = Uint8List.fromList(hex.decode(tag));
-  // var tagList2 = Uint8List.fromList(
-  //     hex.decode("7F494F060A04007F000702020402028641") +
-  //         hex.decode(new_piccPubKey.toHex()));
-  // final cmac = pc.CMac(pc.AESEngine(), 64);
-  // cmac.init(pc.KeyParameter(KSmac));
-  // final t = cmac.process(tagList);
-  // final t2 = cmac.process(tagList2);
-  // print(hex.encode(t));
-  // print(hex.encode(t2));
-  // print(new_piccPubKey.toHex());
-  // print(hex.encode(tagList));
-  testPACE();
+  // testPACE();
+  final encKey =
+      Uint8List.fromList(hex.decode('5152795d5bc7ffdd10ba89a36df4135c'));
+  final key = Key(encKey);
+  final ivEncrypter =
+      Encrypter(AES(Key(encKey), mode: AESMode.ecb, padding: null));
+  final paddedSSC =
+      Uint8List.fromList(hex.decode('0000000000000000000000000000008c'));
+  ;
+  final nullIV = IV(Uint8List(16));
+  final iv = IV(ivEncrypter.encryptBytes(paddedSSC, iv: nullIV).bytes);
+  print('iv = ${iv.bytes.hex()}');
+  print('Expected iv = 0c9bf3b2566f87b1f856a8be25fd9f1e');
+  final encrypter = Encrypter(AES(key, mode: AESMode.cbc, padding: null));
+  final edata =
+      Uint8List.fromList(hex.decode('d9998b0776416a82e25b399429147ebe'));
+  final data =
+      Uint8List.fromList(encrypter.decryptBytes(Encrypted(edata), iv: iv));
+  print(data.hex());
 }

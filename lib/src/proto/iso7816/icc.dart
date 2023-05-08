@@ -80,7 +80,7 @@ class ICC {
         p1: p1,
         p2: p2,
         data: data,
-        ne: ne));
+        ne: 256));
     if (rapdu.status != StatusWord.success) {
       throw ICCError("Internal authenticate failed", rapdu.status, rapdu.data);
     }

@@ -13,13 +13,21 @@ class PACE_SMCipher implements SMCipher {
 
   PACE_SMCipher(this.encKey, this.macKey);
 
+  Uint8List pad(Uint8List data) {
+    final Uint8List padBlock =
+        Uint8List.fromList([0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    final padSize = 16 - (data.length % 16);
+    return Uint8List.fromList(data + padBlock.sublist(0, padSize));
+  }
+
   @override
   Uint8List encrypt(Uint8List data, [IV? iv]) {
     final key = Key(encKey);
+    // final paddedData = pad(data);
     final encrypter = Encrypter(AES(key, mode: AESMode.cbc, padding: null));
+    // return Uint8List.fromList(iv!.bytes + encrypter.encryptBytes(data, iv: iv).bytes);
     return encrypter.encryptBytes(data, iv: iv).bytes;
   }
-
 
   @override
   Uint8List decrypt(Uint8List edata, [IV? iv]) {

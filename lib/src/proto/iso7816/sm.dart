@@ -7,7 +7,6 @@ import 'command_apdu.dart';
 import 'response_apdu.dart';
 import 'smcipher.dart';
 
-
 class SMError implements Exception {
   final String message;
   SMError(this.message);
@@ -35,10 +34,11 @@ abstract class SecureMessaging {
   }
 
   static Uint8List do87(final Uint8List data, {bool dataIsPadded = true}) {
-    if(data.isEmpty) {
+    if (data.isEmpty) {
       return Uint8List(0);
     }
-    final data1 = Uint8List.fromList([dataIsPadded ? 0x01 : 0x02] + data); // Padding info byte defined in ISO/IEC 7816-4 part 5
+    final data1 = Uint8List.fromList([dataIsPadded ? 0x01 : 0x02] +
+        data); // Padding info byte defined in ISO/IEC 7816-4 part 5
     return _buildDO(tagDO87, data1);
   }
 
@@ -47,7 +47,7 @@ abstract class SecureMessaging {
   }
 
   static Uint8List do97(final int ne) {
-    if(ne == 256 || ne == 65536) {
+    if (ne == 256 || ne == 65536) {
       return _buildDO(tagDO97, Uint8List(ne == 256 ? 1 : 2));
     }
     return _buildDO(tagDO97, Utils.intToBin(ne, minLen: 0));
@@ -59,9 +59,21 @@ abstract class SecureMessaging {
 
   static Uint8List _buildDO(final int tag, final Uint8List data) {
     assert(tag < 256);
-    if(data.isEmpty) {
+    if (data.isEmpty) {
       return Uint8List(0);
     }
     return TLV.encode(tag, data);
   }
 }
+    // func buildD097(apdu : NFCISO7816APDU) throws -> [UInt8] {
+    //     let le = apdu.expectedResponseLength
+    //     var binLe = intToBin(le)
+    //     if (le == 256 || le == 65536) {
+    //         binLe = [0x00] + (le > 256 ? [0x00] : [])
+    //     }
+        
+    //     let res : [UInt8] = try [0x97] + toAsn1Length(binLe.count) + binLe
+    //     Log.verbose("Build DO'97")
+    //     Log.verbose("\tDO97: \(res)")
+    //     return res
+    // }

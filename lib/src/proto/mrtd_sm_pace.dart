@@ -1,7 +1,6 @@
 // Created by Hao Pham, 04/05/2023
 
 import 'dart:typed_data';
-
 import 'package:collection/collection.dart';
 import 'package:dmrtd/extensions.dart';
 import 'package:logging/logging.dart';
@@ -12,8 +11,6 @@ import 'iso7816/command_apdu.dart';
 import 'iso7816/iso7816.dart';
 import 'iso7816/response_apdu.dart';
 import 'iso7816/sm.dart';
-import 'iso7816/smcipher.dart';
-import '../crypto/iso9797.dart';
 import '../lds/tlv.dart';
 import 'pace_smcipher.dart';
 
@@ -58,6 +55,7 @@ class MrtdSMPACE extends SecureMessaging {
 
     final CC = paceCipher.mac(N);
     final do8E = SecureMessaging.do8E(CC);
+    _log.verbose(dataDO.length + do97.length + do8E.length);
     _log.verbose("Calculated CC=${CC.hex()}");
     _log.verbose("Generated data DO8E=${do8E.hex()}");
 
@@ -124,10 +122,9 @@ class MrtdSMPACE extends SecureMessaging {
 
   @visibleForTesting
   Uint8List generateDataDO(final CommandAPDU cmd) {
+    _ssc.increment();
     var dataDO = Uint8List(0);
     if (cmd.data != null && cmd.data!.isNotEmpty) {
-      _log.debug("Will encrypt");
-      _log.debug("data = ${cmd.data}");
       final iv = genIV();
       final edata = paceCipher.encrypt(pad(cmd.data!), iv);
       if (cmd.ins == ISO7816_INS.READ_BINARY_EXT) {
@@ -135,8 +132,6 @@ class MrtdSMPACE extends SecureMessaging {
       } else {
         dataDO = SecureMessaging.do87(edata, dataIsPadded: true);
       }
-    } else {
-      _log.debug("Will NOT encrypt");
     }
     return dataDO;
   }
@@ -160,7 +155,6 @@ class MrtdSMPACE extends SecureMessaging {
 
   @visibleForTesting
   Uint8List generateN({required final Uint8List M}) {
-    _ssc.increment();
     final paddedSSC = paddingSSC();
     final upN = Uint8List.fromList(paddedSSC + M);
     return pad(upN);
