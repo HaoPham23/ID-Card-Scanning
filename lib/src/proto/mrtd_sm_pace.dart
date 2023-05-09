@@ -55,7 +55,6 @@ class MrtdSMPACE extends SecureMessaging {
 
     final CC = paceCipher.mac(N);
     final do8E = SecureMessaging.do8E(CC);
-    _log.verbose(dataDO.length + do97.length + do8E.length);
     _log.verbose("Calculated CC=${CC.hex()}");
     _log.verbose("Generated data DO8E=${do8E.hex()}");
 
