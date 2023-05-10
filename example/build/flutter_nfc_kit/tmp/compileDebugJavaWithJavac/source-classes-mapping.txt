@@ -1,0 +1,2 @@
+im/nfc/flutter_nfc_kit/BuildConfig.java
+ im.nfc.flutter_nfc_kit.BuildConfig

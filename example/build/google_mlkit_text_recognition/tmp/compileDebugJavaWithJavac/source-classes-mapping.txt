@@ -1,0 +1,6 @@
+com/google_mlkit_text_recognition/TextRecognizer.java
+ com.google_mlkit_text_recognition.TextRecognizer
+com/google_mlkit_text_recognition/BuildConfig.java
+ com.google_mlkit_text_recognition.BuildConfig
+com/google_mlkit_text_recognition/GoogleMlKitTextRecognitionPlugin.java
+ com.google_mlkit_text_recognition.GoogleMlKitTextRecognitionPlugin
