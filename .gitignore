@@ -40,5 +40,5 @@ lib/generated_plugin_registrant.dart
 # macOS
 ._*
 bruh
-example/output_bac.txt
+output_bac.txt
 output_pace.txt
